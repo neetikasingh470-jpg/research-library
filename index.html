@@ -125,6 +125,9 @@ ol.slips { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .tag.field { color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); }
 .tag.free { color: var(--free); background: var(--free-bg); }
 .tag.borrow { color: var(--borrow); background: var(--borrow-bg); }
+.tag.unavailable { color: var(--ink-soft); background: var(--rule); }
+.slip .note-line { font-size: 13px; color: var(--ink-soft); }
+.slip .note-line a { color: var(--accent); }
 .slip h3 { margin: 0; font: 500 19px/1.3 var(--display); text-wrap: pretty; overflow-wrap: anywhere; }
 .slip h3 a { color: var(--ink); text-decoration: none; }
 .slip h3 a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
@@ -154,6 +157,7 @@ footer a { color: var(--ink-soft); }
     <a href="#articles" data-shelf="articles">Articles</a>
     <a href="#books" data-shelf="books">New books</a>
     <a href="#classics" data-shelf="classics">Classics</a>
+    <a href="#reading" data-shelf="reading">Reading list</a>
   </nav>
 
   <section class="controls" aria-label="Filters">
@@ -186,7 +190,7 @@ footer a { color: var(--ink-soft); }
   <footer>
     <div>Articles come only from journals vetted by DOAJ or established indexed journals; pay-to-publish outlets are left out.</div>
     <div>Articles: <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>, <a href="https://doaj.org" target="_blank" rel="noopener">DOAJ</a>, <a href="https://europepmc.org" target="_blank" rel="noopener">Europe PMC</a>. Books: OpenAlex, <a href="https://openlibrary.org" target="_blank" rel="noopener">Open Library</a>. Classics: <a href="https://archive.org" target="_blank" rel="noopener">Internet Archive</a>. Preprints are excluded.</div>
-    <div><b>Free</b> opens directly. <b>Borrow</b> needs a free Internet Archive account and is time-limited.</div>
+    <div><b>Free</b> opens directly. <b>Borrow</b> needs a free Internet Archive account and is time-limited. <b>Not free online</b> links to Open Library, which shows libraries and shops that have it.</div>
   </footer>
 </div>
 
@@ -283,10 +287,40 @@ function aboutSetting(text) {
   return new RegExp("\\b(" + S.terms.join("|") + ")\\b", "i").test(t);
 }
 
+/* Reading list: books added by hand. access: "free", "borrow" or "unavailable" (not free online).
+   To add one, copy a line. note is optional; extra adds a second link. */
+const READING_LIST = [
+  { title: "Abnormal and Clinical Psychology: An Introductory Textbook", by: "Paul Bennett", venue: "Open University Press", date: "2006", fields: ["abn"],
+    access: "borrow", url: "https://archive.org/details/abnormalclinical0000benn",
+    note: "The link is the 1st edition (2003); the 2006 edition isn't available online." },
+  { title: "Abnormal Psychology", by: "Jill M. Hooley, Matthew K. Nock, James N. Butcher", venue: "Pearson", date: "2020", fields: ["abn"],
+    access: "borrow", url: "https://archive.org/details/abnormalpsycholo0000jill",
+    note: "The link is the 16th edition (2017, Indian adaptation); the 2020 edition isn't available online." },
+  { title: "Abnormal Psychology", by: "Alan Carr", venue: "Psychology Press", date: "2001", fields: ["abn"],
+    access: "unavailable", url: "https://openlibrary.org/works/OL1907896W" },
+  { title: "Classification and Diagnosis of Psychological Abnormality", by: "Susan Cave", venue: "Routledge", date: "2002", fields: ["abn"],
+    access: "unavailable", url: "https://openlibrary.org/works/OL1981813W",
+    note: "Internet Archive has a copy, but only for readers with a print disability." },
+  { title: "Abnormal Psychology (9th edition)", by: "Ronald J. Comer", venue: "Worth Publishers", date: "2015", fields: ["abn"],
+    access: "unavailable", url: "https://openlibrary.org/works/OL20853038W" },
+  { title: "Addiction and Change: How Addictions Develop and Addicted People Recover", by: "Carlo C. DiClemente", venue: "Guilford Press", date: "2003", fields: ["abn"],
+    access: "unavailable", url: "https://openlibrary.org/works/OL8920645W",
+    note: "Internet Archive has a copy, but only for readers with a print disability." },
+  { title: "The ICD-10 Classification of Mental and Behavioural Disorders: Clinical Descriptions and Diagnostic Guidelines", by: "World Health Organization", venue: "WHO, Geneva", date: "1992", fields: ["abn"],
+    access: "borrow", url: "https://archive.org/details/isbn_9788174731555",
+    extra: { label: "WHO's own copy", url: "https://iris.who.int/handle/10665/37958" } },
+];
+async function readingList() {
+  const q = state.q.toLowerCase();
+  return READING_LIST.filter(b => !q || (b.title + " " + b.by).toLowerCase().includes(q))
+    .map(b => ({ ...b, source: "Reading list" }));
+}
+
 const SHELVES = {
   articles: { blurb: `Free-to-read journal articles from the last ${ARTICLE_DAYS} days, newest first.` },
   books: { blurb: `Open-access books from the last ${BOOK_MONTHS} months, plus recent books you can borrow free from Open Library.` },
   classics: { blurb: `Public-domain classics (published up to ${CLASSICS_TO_YEAR}), free to read and download.` },
+  reading: { blurb: "Books you've added by hand, with where to read each one. Some aren't free online." },
 };
 
 /* ============ state ============ */
@@ -551,6 +585,7 @@ const PLAN = {
   articles: [["OpenAlex", p => openalex("articles", p), "openalexMore"], ["DOAJ", doaj, "doajMore"], ["Europe PMC", () => europepmc(), "epmcMore"]],
   books: [["OpenAlex", p => openalex("books", p), "openalexMore"], ["Open Library", openlibrary, "olMore"]],
   classics: [["Internet Archive", archive, "iaMore"]],
+  reading: [["Reading list", () => readingList(), "rlMore"]],
 };
 let page = 1;
 
@@ -601,9 +636,10 @@ async function load(fresh) {
 function addItems(list) {
   let n = 0;
   for (const it of list) {
-    if (state.english && state.shelf !== "classics" && !looksEnglish(it.title)) continue;
+    if (state.english && state.shelf !== "classics" && state.shelf !== "reading" && !looksEnglish(it.title)) continue;
     if (SETTINGS[state.setting] && SETTINGS[state.setting].notAbout.test(it.title) && !aboutSetting(it.title)) { SETTINGS[state.setting].notAbout.lastIndex = 0; continue; }
     if (SETTINGS[state.setting]) SETTINGS[state.setting].notAbout.lastIndex = 0;
+    if (state.shelf === "reading") { items.push(it); n++; continue; } // hand-picked: keep every entry
     const k1 = it.doi ? it.doi.toLowerCase() : null, k2 = normTitle(it.title);
     if ((k1 && seen.has(k1)) || seen.has(k2)) continue;
     if (k1) seen.add(k1); seen.add(k2);
@@ -613,7 +649,7 @@ function addItems(list) {
 }
 
 function sorted() {
-  if (state.shelf === "classics") return items; // archive already sorts
+  if (state.shelf === "classics" || state.shelf === "reading") return items; // already in order
   const key = i => i.sortDate || i.date || "";
   // Books: open-access first by date, then borrowables by date
   if (state.shelf === "books") return [...items].sort((a, b) => (a.access === b.access ? String(key(b)).localeCompare(String(key(a))) : a.access === "free" ? -1 : 1));
@@ -629,7 +665,7 @@ function render() {
       const f = FIELDS.find(F => F.id === fid); if (!f) continue;
       const t = document.createElement("span"); t.className = "tag field"; t.style.setProperty("--c", `var(${f.color})`); t.textContent = f.name; top.append(t);
     }
-    const acc = document.createElement("span"); acc.className = "tag " + it.access; acc.textContent = it.access === "borrow" ? "Borrow" : "Free";
+    const acc = document.createElement("span"); acc.className = "tag " + it.access; acc.textContent = { borrow: "Borrow", unavailable: "Not free online" }[it.access] || "Free";
     top.append(acc);
     const h = document.createElement("h3"); const a = document.createElement("a");
     a.href = it.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = it.title; h.append(a);
@@ -640,6 +676,12 @@ function render() {
     const d = document.createElement("span"); d.textContent = it.dateText || fmtDate(it.date); if (d.textContent) meta.append(d);
     const s = document.createElement("span"); s.textContent = "via " + it.source; meta.append(s);
     li.append(meta);
+    if (it.note || it.extra) {
+      const n = document.createElement("div"); n.className = "note-line";
+      if (it.note) n.append(document.createTextNode(it.note + (it.extra ? " " : "")));
+      if (it.extra) { const x = document.createElement("a"); x.href = it.extra.url; x.target = "_blank"; x.rel = "noopener"; x.textContent = it.extra.label + " ↗"; n.append(x); }
+      li.append(n);
+    }
     ol.append(li);
   }
 }
@@ -664,7 +706,7 @@ function changed() { store.set("fields", [...state.fields]); buildChips(); load(
 
 function updateSettingNote() {
   const n = $("#setting-note");
-  if (!SETTINGS[state.setting]) { n.hidden = true; return; }
+  if (!SETTINGS[state.setting] || state.shelf === "reading") { n.hidden = true; return; }
   n.hidden = false;
   n.textContent = state.shelf === "classics"
     ? `Showing classics about ${SETTINGS[state.setting].label}.`
