@@ -25,7 +25,7 @@
   --warn: #9b2c2c;
   /* field colours */
   --f-psych: #6b4fa0; --f-anth: #a2522b; --f-cog: #1f7a8c; --f-soc: #3d6b2f;
-  --f-ling: #9c3a6c; --f-arch: #7a6420; --f-phil: #3f4f8f;
+  --f-ling: #9c3a6c; --f-arch: #7a6420; --f-phil: #3f4f8f; --f-abn: #b23a3a;
   --display: "Newsreader", Georgia, "Times New Roman", serif;
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -36,7 +36,7 @@
     --accent: #8db4ea; --accent-soft: #1f2d44; --free: #7fd3a6; --free-bg: #18352a;
     --borrow: #e9bd73; --borrow-bg: #3a2c14; --warn: #f19a9a;
     --f-psych: #b9a2e6; --f-anth: #e79b74; --f-cog: #74c6d6; --f-soc: #9fcf8a;
-    --f-ling: #e290bb; --f-arch: #d6bd6a; --f-phil: #a3b1ec;
+    --f-ling: #e290bb; --f-arch: #d6bd6a; --f-phil: #a3b1ec; --f-abn: #f29b9b;
     color-scheme: dark;
   }
 }
@@ -45,7 +45,7 @@
   --accent: #8db4ea; --accent-soft: #1f2d44; --free: #7fd3a6; --free-bg: #18352a;
   --borrow: #e9bd73; --borrow-bg: #3a2c14; --warn: #f19a9a;
   --f-psych: #b9a2e6; --f-anth: #e79b74; --f-cog: #74c6d6; --f-soc: #9fcf8a;
-  --f-ling: #e290bb; --f-arch: #d6bd6a; --f-phil: #a3b1ec;
+  --f-ling: #e290bb; --f-arch: #d6bd6a; --f-phil: #a3b1ec; --f-abn: #f29b9b;
   color-scheme: dark;
 }
 
@@ -184,6 +184,7 @@ footer a { color: var(--ink-soft); }
   <div class="more"><button class="btn" id="more" hidden>Load more</button></div>
 
   <footer>
+    <div>Articles come only from journals vetted by DOAJ or established indexed journals; pay-to-publish outlets are left out.</div>
     <div>Articles: <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>, <a href="https://doaj.org" target="_blank" rel="noopener">DOAJ</a>, <a href="https://europepmc.org" target="_blank" rel="noopener">Europe PMC</a>. Books: OpenAlex, <a href="https://openlibrary.org" target="_blank" rel="noopener">Open Library</a>. Classics: <a href="https://archive.org" target="_blank" rel="noopener">Internet Archive</a>. Preprints are excluded.</div>
     <div><b>Free</b> opens directly. <b>Borrow</b> needs a free Internet Archive account and is time-limited.</div>
   </footer>
@@ -203,6 +204,7 @@ const PAGE = 25;
 /* Fields. To add one later, copy a block and adjust.
    oa: OpenAlex subfield ids · doaj: DOAJ subject terms · epmc: Europe PMC query (optional)
    ia: Internet Archive subject terms · ol: Open Library subjects · match: words used to label results */
+const ABN_RE = /psychopatholog|abnormal psych|psychology, pathological|mental (illness|disorder)|insan|hysteri|neuros[ie]s|psychos[ie]s|psychotic|schizophren|personality disorder|bipolar|obsessive|ptsd|post-?traumatic|eating disorder|anxiety disorder|depressive disorder|dissociat|psychiatr/i;
 const FIELDS = [
   { id: "psych", name: "Psychology", color: "--f-psych",
     oa: [3202, 3203, 3204, 3205, 3206, 3207],
@@ -210,6 +212,18 @@ const FIELDS = [
     epmc: '(TITLE:psycholog* OR JOURNAL:psycholog*)',
     ia: ['psychology'], ol: ['psychology'],
     match: /psycholog/i },
+  { id: "abn", name: "Abnormal psychology", color: "--f-abn",
+    // clinical psychology + psychiatry, narrowed to studies about mental disorders
+    oa: [3203, 2738], oaInSummary: true, oaSearch: 'psychopathology OR "mental disorder" OR "mental disorders" OR "mental illness" OR schizophrenia OR psychosis OR psychotic OR "personality disorder" OR "bipolar disorder" OR PTSD OR "post-traumatic stress" OR "obsessive-compulsive" OR "eating disorder" OR "anxiety disorder" OR "depressive disorder" OR dissociative OR "abnormal psychology"',
+    doaj: [],
+    doajExtra: [
+      { code: 'RC435-571', title: '(psychopathology OR "mental disorder" OR "mental disorders" OR "mental illness" OR schizophrenia OR psychosis OR psychotic OR "personality disorder" OR "bipolar disorder" OR PTSD OR "post-traumatic stress" OR "obsessive-compulsive" OR "eating disorder" OR "anxiety disorder" OR "depressive disorder" OR dissociative OR "abnormal psychology")', re: ABN_RE },
+      { code: 'BF1-990', title: '(psychopathology OR "mental disorder" OR "mental disorders" OR "mental illness" OR schizophrenia OR psychosis OR psychotic OR "personality disorder" OR "bipolar disorder" OR PTSD OR "post-traumatic stress" OR "obsessive-compulsive" OR "eating disorder" OR "anxiety disorder" OR "depressive disorder" OR dissociative OR "abnormal psychology")', re: ABN_RE },
+    ],
+    epmc: '(TITLE:psychopatholog* OR TITLE:"mental disorder" OR TITLE:"mental disorders" OR TITLE:schizophreni* OR TITLE:psychosis OR TITLE:psychotic OR TITLE:"personality disorder" OR TITLE:"bipolar disorder" OR TITLE:"obsessive-compulsive" OR TITLE:"eating disorder" OR TITLE:"anxiety disorder" OR TITLE:"depressive disorder" OR TITLE:PTSD OR TITLE:dissociative)',
+    ia: ['psychology, pathological', 'abnormal psychology', 'insanity', 'mental illness', 'hysteria', 'neuroses', 'psychoses', 'psychiatry'],
+    ol: ['psychology, pathological', 'abnormal psychology', 'mental illness', 'psychopathology'],
+    match: ABN_RE },
   { id: "anth", name: "Anthropology", color: "--f-anth",
     oa: [3314],
     doaj: ['GN1-890', 'GN301-674'],
@@ -360,21 +374,30 @@ async function openalex(kind, page) {
   const fields = activeFields();
   const base = ["is_oa:true", `to_publication_date:${iso(today)}`];
   if (state.english) base.push("language:en");
-  if (SETTINGS[state.setting]) base.push("title_and_abstract.search:" + settingQuery(SETTINGS[state.setting].terms, ""));
+  const placeTerms = SETTINGS[state.setting] ? settingQuery(SETTINGS[state.setting].terms, "") : "";
+  if (placeTerms) base.push("title_and_abstract.search:" + placeTerms);
   if (kind === "articles") base.push("type:article", "primary_location.source.type:journal", `from_publication_date:${iso(daysAgo(ARTICLE_DAYS))}`);
   else { const d = new Date(today); d.setMonth(d.getMonth() - BOOK_MONTHS); base.push("type:book", "primary_location.source.type:!repository", `from_publication_date:${iso(d)}`); }
 
   // Two query groups: plain subfields, and "philosophy of mind" (philosophy + mind keywords)
   const groups = [];
+  for (const f of fields.filter(f => f.oaSearch)) {
+    if (f.oaInSummary) {
+      // keywords must appear in the title or summary (not just somewhere in a full book)
+      const t = placeTerms ? `(${placeTerms}) AND (${f.oaSearch})` : f.oaSearch;
+      const filter = [...base.filter(x => !x.startsWith("title_and_abstract.search:")), "title_and_abstract.search:" + t, "primary_topic.subfield.id:" + f.oa.join("|")];
+      groups.push({ label: f.id, filter, search: clean(state.q) });
+    } else {
+      groups.push({ label: f.id, filter: [...base, "primary_topic.subfield.id:" + f.oa.join("|")], search: state.q ? `(${f.oaSearch}) AND (${clean(state.q)})` : f.oaSearch });
+    }
+  }
   const ids = oaFilterIds(fields);
   if (ids.length) groups.push({ filter: [...base, "primary_topic.subfield.id:" + ids.join("|")], search: clean(state.q) });
-  for (const f of fields.filter(f => f.oaSearch)) {
-    groups.push({ filter: [...base, "primary_topic.subfield.id:" + f.oa.join("|")], search: [f.oaSearch, clean(state.q)].filter(Boolean).join(" ") });
-  }
   const select = "id,doi,title,publication_date,authorships,primary_location,best_oa_location,primary_topic,open_access" + (SETTINGS[state.setting] ? ",abstract_inverted_index" : "");
   const out = [];
   for (const g of groups) {
-    const p = new URLSearchParams({ filter: g.filter.join(","), sort: "publication_date:desc", "per-page": PAGE, page, select });
+    const perPage = kind === "articles" ? PAGE * 2 : PAGE; // fetch extra, since the quality floor drops some
+    const p = new URLSearchParams({ filter: g.filter.join(","), sort: "publication_date:desc", "per-page": perPage, page, select });
     if (g.search) p.set("search", g.search);
     let data;
     const url = "https://api.openalex.org/works?" + p;
@@ -389,6 +412,9 @@ async function openalex(kind, page) {
       const link = loc.landing_page_url || loc.pdf_url || w.open_access?.oa_url || w.doi;
       if (!link || !w.title) continue;
       if (kind === "books" && !w.primary_location?.source) continue; // skip uploads with no publisher
+      // Quality floor for articles: the journal must be vetted by DOAJ or be an established indexed ("core") journal.
+      // This keeps out pay-to-publish outlets that publish almost anything.
+      if (kind === "articles") { const src = w.primary_location?.source || {}; if (!src.is_in_doaj && !src.is_core) continue; }
       if (SETTINGS[state.setting]) {
         // count real mentions of the place in title + summary; one passing mention in a long summary isn't enough
         const S = SETTINGS[state.setting];
@@ -399,8 +425,7 @@ async function openalex(kind, page) {
         if (S.otherContext && S.otherContext.test(text) && !aboutSetting(w.title)) continue;
       }
       const sub = w.primary_topic?.subfield?.id ? Number(String(w.primary_topic.subfield.id).split("/").pop()) : null;
-      let f = FIELDS.filter(F => state.fields.has(F.id) && F.oa.includes(sub)).map(F => F.id);
-      if (sub === 1211) f = ["phil"];
+      const f = g.label ? [g.label] : FIELDS.filter(F => state.fields.has(F.id) && !F.oaSearch && F.oa.includes(sub)).map(F => F.id);
       out.push({
         title: w.title, url: link, doi: w.doi,
         by: authorsText((w.authorships || []).map(a => a.author?.display_name)),
@@ -409,7 +434,7 @@ async function openalex(kind, page) {
         source: "OpenAlex", access: "free",
       });
     }
-    if ((data.results || []).length === PAGE) cursors.openalexMore = true;
+    if ((data.results || []).length === perPage) cursors.openalexMore = true;
   }
   return out;
 }
@@ -418,7 +443,7 @@ async function openalex(kind, page) {
 async function doaj(page) {
   const fields = activeFields();
   const parts = fields.flatMap(f => f.doaj).map(c => `bibjson.subject.code:"${c}"`);
-  for (const f of fields.filter(f => f.doajExtra)) parts.push(`(bibjson.subject.code:"${f.doajExtra.code}" AND bibjson.title:${f.doajExtra.title})`);
+  for (const f of fields.filter(f => f.doajExtra)) for (const x of [].concat(f.doajExtra)) parts.push(`(bibjson.subject.code:"${x.code}" AND bibjson.title:${x.title})`);
   let q = "(" + parts.join(" OR ") + ")";
   if (state.q) q += ` AND (${clean(state.q)})`;
   q += ` AND created_date:>=${iso(daysAgo(ARTICLE_DAYS))}`;
@@ -437,7 +462,7 @@ async function doaj(page) {
     const codes = (b.subject || []).map(s => s.code);
     const f = FIELDS.filter(F => state.fields.has(F.id) && (
       F.doaj.some(c => codes.includes(c)) ||
-      (F.doajExtra && codes.includes(F.doajExtra.code) && F.doajExtra.re.test(b.title))
+      (F.doajExtra && [].concat(F.doajExtra).some(x => codes.includes(x.code) && x.re.test(b.title)))
     )).map(F => F.id);
     if (!f.length) continue;
     out.push({
