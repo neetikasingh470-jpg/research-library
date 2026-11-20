@@ -309,6 +309,13 @@ const READING_LIST = [
   { title: "The ICD-10 Classification of Mental and Behavioural Disorders: Clinical Descriptions and Diagnostic Guidelines", by: "World Health Organization", venue: "WHO, Geneva", date: "1992", fields: ["abn"],
     access: "borrow", url: "https://archive.org/details/isbn_9788174731555",
     extra: { label: "WHO's own copy", url: "https://iris.who.int/handle/10665/37958" } },
+  // Free open textbooks covering the same ground
+  { title: "Psychology 2e: Psychological Disorders and Therapy (chapters 15–16)", by: "Rose M. Spielman, William J. Jenkins, Marilyn D. Lovett", venue: "OpenStax, Rice University", date: "2020", fields: ["abn"],
+    access: "free", url: "https://openstax.org/books/psychology-2e/pages/15-introduction",
+    note: "Open textbook: free to read online or download as a PDF." },
+  { title: "Abnormal Psychology (Noba collection)", by: "Noba Project", venue: "Noba", date: "", fields: ["abn"],
+    access: "free", url: "https://nobaproject.com/textbooks/abnormal-psychology",
+    note: "Free modules written by academics, e.g. anxiety-related disorders, dissociative disorders, ADHD." },
 ];
 async function readingList() {
   const q = state.q.toLowerCase();
